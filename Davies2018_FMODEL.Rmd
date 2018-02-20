@@ -10,7 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Introduction
-The following code was used to conduct analyses and produce graphics for the forthcoming paper, MODELING RELATIONSHIPS BETWEEN SPACE, MOVEMENT, AND LITHIC GEOMETRIC ATTRIBUTES, to be published in *American Antiquity*.
+The following code, in combination with field data and NetLogo simulations, was used to conduct analyses and produce graphics for the forthcoming paper: 
+
+Davies, B., S. J. Holdaway, and P. C. Fanning. In press. Modeling relationships between space, movement, and lithic geometric attributes. Accepted to American Antiquity.
 
 ## Import and process field data
 
@@ -39,7 +41,6 @@ scalds<-unique(rc_lithics$SCALD)
 ## Function to Calculate Cortex Ratios
 
 This method first estimates the mass for silcrete artefacts of different forms using a regression formula published in Douglass 2010. It then calculates the cortex ratio in two different ways: the first estimates original nodule size by dividing the volume of the assemblage by the number of cores, and the number of cores. The second method, advocated by Douglass and colleagues, estimates the number of nodules representedd in the assemblage by dividing the assemblage volume by the estimated original nodlule volume (see above); this value is then multiplied by the original nodule cortical surface area to derive the expected cortical surface area for the assemblage. The latter method is used in this study.
-
 
 
 ```{r get_cortex_ratios}
@@ -119,7 +120,7 @@ cortexratio<-function(d){
 }
 ```
 
-## Get scald cortex ratios
+## Get Cortex Ratios for Rutherfords Creek scalds
 
 ```{r getscald_cr_values}
 #First, remove ground stone objects, etc
@@ -177,7 +178,7 @@ for (i in r) {
 }
 ```
 
-#Read in simulated core data
+## Read in simulated core data
 
 ```{r sim_core_read}
 cm<-read.csv("fmodel_v3 (cores) Core Target 100-table.csv",header=TRUE,skip=6)
