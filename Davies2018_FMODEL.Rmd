@@ -1,0 +1,473 @@
+---
+title: "Electronic supplement for MODELING RELATIONSHIPS BETWEEN SPACE, MOVEMENT, AND LITHIC GEOMETRIC ATTRIBUTES"
+author: "Benjamin Davies, Simon J. Holdaway, and Patricia C. Fanning"
+date: "20 February 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+The following code was used to conduct analyses and produce graphics for the forthcoming paper, MODELING RELATIONSHIPS BETWEEN SPACE, MOVEMENT, AND LITHIC GEOMETRIC ATTRIBUTES, to be published in *American Antiquity*.
+
+##Import and process empirical data
+
+First, the lithic and scald (surveyed surface exposure) data from Rutherfords Creek are loaded in from CSV files
+
+```{r empirical_read}
+rc_lithics<-read.csv("RC_LITHICS.csv",stringsAsFactors = FALSE)
+scald_areas<-read.csv("RC_SCALDS.csv",stringsAsFactors = FALSE)
+```
+ 
+A subset of the data containing only cores is created, and "original nodule" characteristics are estimated from the upper quantile values for cores retaining >= 0.5 cortex (after Lin et al. 2016) to be used below in calculating Cortex Ratios. 
+
+```{r empirical_process, echo=FALSE}
+cores<-subset(rc_lithics,FLAKECLASS == "CORE")
+bigcores_cortex<-subset(cores,CORTEX>=0.5)
+a<-as.numeric(quantile(bigcores_cortex$MAXLENGTH)[4])/2
+b<-as.numeric(quantile(bigcores_cortex$MAXWIDTH)[4])/2
+c<-as.numeric(quantile(bigcores_cortex$MAXTHICK)[4])/2
+p<-1.6075
+orig_cob_vol<-(4/3)*pi*a*b*c
+orig_cob_csa<-4*pi*(((a*b)^p+(a*c)^p+(b*c)^p)/3)^(1/p)
+
+scalds<-unique(rc_lithics$SCALD)
+```
+
+#Calculate Cortex Ratios
+
+This method first estimates the mass for silcrete artefacts of different forms using a regression formula published in Douglass 2010. It then calculates the cortex ratio in two different ways: the first estimates original nodule size by dividing the volume of the assemblage by the number of cores, and the number of cores. The second method, advocated by Douglass and colleagues, estimates the number of nodules representedd in the assemblage by dividing the assemblage volume by the estimated original nodlule volume (see above); this value is then multiplied by the original nodule cortical surface area to derive the expected cortical surface area for the assemblage. The latter method is used in this study.
+
+
+
+```{r get_cortex_ratios}
+cortexratio<-function(d){
+  cortex_ratio<-0 
+  assem_vol<-0   #total assemblage volume
+  core_vols<-c()  #vector of core volumes
+  exp_csa<-0 #expected cortical surface area
+  obs_csa<-0 #observed cortical surface area
+  fcount<-0  #flake count
+  ccount<-0 #core count
+  for (i in c(1:(length(d[,1])))) { #for each artifact in an dataset
+    
+    l<-d[i,30] #get max length
+    w<-d[i,31] #get max width
+    t<-d[i,32] #get max thickness
+    
+    #the next section uses a regression formula to estimate mass for different classes of silcrete artefacts from Douglass 2010; cores are also 
+    
+    if (d[i,7] %in% c("ANGULARFRAG","ANGULARFRAGTOOL")) {
+      mass<-(l*w*t) * 0.919
+      fcount<-fcount+1
+      csa<-(l*w) * d[i,11]
+    }
+   
+    if (d[i,7] %in% c("BROKEFLAKE","BROKSPLIT","DISTFLAKE","DISTTOOL","COMPSPLIT","PROXSPLIT","MEDFLAKE","MEDTOOL","MEDSPLITTOOL","COMPSPLITTOOL")) {
+      mass<-(l*w*t) * 0.89
+      fcount<-fcount+1
+      csa<-(l*w) * d[i,11]
+    }
+    if (d[i,7] %in% c("COMPFLAKE","COMPTOOL")) {
+      mass<-(l*w*t) * 0.886
+      fcount<-fcount+1
+      csa<-(l*w) * d[i,11]
+    }
+    if (d[i,7] %in% c("PROXSPLIT","PROXSPLITTOOL","PROXFLAKE","PROXTOOL")) {
+      mass<-(l*w*t) * 0.859
+      fcount<-fcount+1
+      csa<-(l*w) * d[i,11]
+    }
+    if (d[i,7] == "CORE") {
+       mass<-(l*w*t) * 1.008
+      ccount<-ccount+1
+      p<-1.6075
+      csa<-(4*pi*((((l^1.6075)*(w^1.6075))+((l^1.6075) * (t^1.6075))+ ((w^1.6075) * (t^1.6075))) / 3) ^ (1/1.6075)/4) * d[i,11]
+     
+      }
+#add to the assemblage volume by dividing the mass of the artefact by its specific gravity
+    assem_vol<-assem_vol + (((mass/2.53)))
+#add to the assemblage observed surface area
+    obs_csa<-obs_csa + csa
+  }
+  
+  #SCALD ATTRIBUTES
+  
+  scald_num<-d[i,2]
+  scald_area<-scald_areas[which(scald_areas$ID == scald_num),8]  
+  if (scald_num %in% scald_areas$ID == FALSE) {
+    scald_area<-NA
+  }
+  
+  ##CORE COUNT METHOD
+  
+  av_nod_vol<-(assem_vol/1000) / (length(subset(d,FLAKECLASS == "CORE")[,1]))
+  av_nod_csa <- pi^(1/3)*(6*av_nod_vol)^(2/3)*100 ##(4 * pi * (3 * (av_nod_vol / (4 * pi)))^(2 / 3))*100 
+  exp_csa<-(length(subset(d,FLAKECLASS == "CORE")[,1])) * av_nod_csa
+  cortex_ratio_COUNT<-obs_csa/exp_csa
+  
+  
+  ##VOLUME METHOD
+  mod_num_cob<-assem_vol / orig_cob_vol
+  exp_csa<-orig_cob_csa * mod_num_cob
+  cortex_ratio_VOL<-obs_csa/exp_csa
+  density<-(fcount+ccount)/scald_area
+  ##print scald,area,total artefacts, cores, av_nod_vol,exp_csa,obs_csa,cr
+  c(scald_num,scald_area,fcount,ccount,density,av_nod_vol,exp_csa,obs_csa,cortex_ratio_COUNT,cortex_ratio_VOL)
+}
+```
+
+#Get scald cortex ratios
+
+```{r getscald_cr_values}
+#First, remove ground stone objects, etc
+rc_lithics<-subset(rc_lithics,FLAKECLASS!="MILLSLABFRAG")
+rc_lithics<-subset(rc_lithics,FLAKECLASS!="CHOPPER")
+rc_lithics<-subset(rc_lithics,FLAKECLASS!="HAMMER")
+rc_lithics<-subset(rc_lithics,FLAKECLASS!="MULLER")
+rc_lithics<-subset(rc_lithics,FLAKECLASS!="AXE")
+rc_lithics<-subset(rc_lithics,FLAKECLASS!="BLOCK")
+rc_lithics<-subset(rc_lithics,FLAKECLASS!="COMPBIPOLAR")
+
+#create an empty table recording scald number, flake count, core count, density, average nodule volume, expected cortical surface area, observed cortical surface area, core count cortex ratio, and volume based cortex ratio
+
+output<-data.frame(SCALD=integer(0),SCALDAREA=numeric(0),FCOUNT=integer(0),CCOUNT=integer(0),DENSITY=numeric(0),AVNODVOL=numeric(0),EXPCSA=numeric(0),OBSCSA=numeric(0),CR_C=numeric(0),CR_V=numeric(0))
+row<-1
+
+#for each scald, subset the lithic data for that scald number, then calculate cortex ratios using the function above, and add the values to the "output" table
+
+for (g in scalds) {
+  h<-subset(rc_lithics,SCALD==g)
+ # if (length(subset(h,FLAKECLASS == "CORE")[,1]) >= 1){
+    run<-cortexratio(h)
+    output[row,]<-run
+    row<-row+1
+ # }
+}
+rc_scalds<-output
+```
+
+Reading in the simulated flake data
+
+```{r sim_flake_read}
+fm<-read.csv("fmodel_v3 Flake Target 100-table.csv",header=TRUE,skip=6)
+
+r<-unique(fm[,4])  ##reduction
+s<-unique(fm[,5])  ##selection
+c<-unique(fm[,6])  ##carry_in
+m<-unique(fm[,3])  ##mu
+for (i in r) {
+  for (j in s) {
+    for (k in c) {
+      for (l in m) {
+        x<-c()
+        y<-subset(fm,reduction==i)
+        y<-subset(y,selection==j)
+        y<-subset(y,carry_in==k)
+        y<-subset(y,mu==l)
+        z<-as.numeric(as.character(y[,10]))
+        z<-as.vector(z)
+        n<-paste("r",i,"_s",j,"_c",k,"_m",l,"_w100",sep="")
+        assign(n,z)
+      }
+    }
+  }
+}
+```
+
+#Read in simulated core data
+
+```{r sim_core_read}
+cm<-read.csv("fmodel_v3 (cores) Core Target 100-table.csv",header=TRUE,skip=6)
+
+
+r<-unique(cm[,4])  ##reduction
+c<-unique(cm[,5])  ##carry_in
+o<-unique(cm[,6])  ##overproduce
+m<-unique(cm[,3])  ##mu
+for (i in r) {
+  for (j in c) {
+    for (k in o) {
+      for (l in m) {
+        x<-c()
+        y<-subset(cm,reduction==i)
+        y<-subset(y,carry_in==j)
+        y<-subset(y,overproduce==k)
+        y<-subset(y,mu==l)
+        z<-as.numeric(as.character(y[,10]))
+        z<-as.vector(z)
+        n<-paste("r",i,"_c",j,"_o",k,"_m",l,"_w100",sep="")
+        assign(n,z)
+      }
+    }
+  }
+}
+```
+
+
+## Figure 2
+
+Distribution of Cortex Ratios from assemblages (n =97) recorded at Rutherfords Creek
+
+```{r fig_2}
+
+hist(rc_scalds$CR_V,breaks=12)
+
+```
+
+## Figure 3
+
+Probability densities of drawing steps of length for different values of mu
+
+
+```{r fig_3b}
+for (i in c(1,2,3)) {
+mu<-i
+p<-c()
+for(j in c(1:10000)) {
+  p<-append(p,runif(1) ^ (-1 / mu ))
+}
+d<-density(log(p))
+plot(d,xlim=c(0,10),ylim=c(0,2.5),main="",xlab=expression(log(italic(l))))
+polygon(d,col="black",border="black")
+}
+
+```
+
+## Figure 4
+
+95% confidence envelopes for cortex ratios obtained from simulations using varying degrees of reduction_intensity (shown in upper right corner of each plot) and selection_intensity (low to high = darker to lighter, outermost envelope showing selection_intensity = 1) when flakes are the objects being selected. 
+
+```{r fig_4}
+r<-unique(fm[,4])
+s<-unique(fm[,5])
+c<-unique(fm[,6])
+m<-unique(fm[,3])
+all_max<-0
+all_min<-0
+par(mfrow=c(2,3))
+for (i in r) {
+
+  plot(c(1:5),c(0,1,2,2.5,2.5),col="white", xaxt="n",xlab="",ylab="",ylim=c(0,2.5))
+  axis(1, at=1:5, labels=c("1","1.5","2.0","2.5","3.0"))
+  for (j in s[6:1]) {
+    z<-c()
+    y<-c()
+    x<-c()
+    w<-c()
+    v<-c()
+    for (k in c) {
+      z<-append(z,get(paste("r",i,"_s",j,"_c",k,"_m",1,"_w100",sep="")))
+      y<-append(y,get(paste("r",i,"_s",j,"_c",k,"_m",1.5,"_w100",sep="")))
+      x<-append(x,get(paste("r",i,"_s",j,"_c",k,"_m",2,"_w100",sep="")))
+      w<-append(w,get(paste("r",i,"_s",j,"_c",k,"_m",2.5,"_w100",sep="")))
+      v<-append(v,get(paste("r",i,"_s",j,"_c",k,"_m",3,"_w100",sep="")))
+    }
+  #  z<-log(z)
+  #  y<-log(y)
+  #  x<-log(x)
+  #  w<-log(w)
+  #  v<-log(v)
+
+    all_max<-c(sort(z)[round(length(z)*0.95)],sort(y)[round(length(y)*0.95)],sort(x)[round(length(x)*0.95)],sort(w)[round(length(w)*0.95)],sort(v)[round(length(v)*0.95)])
+    all_mean<-c(mean(z,na.rm=TRUE),mean(y,na.rm=TRUE),mean(x,na.rm=TRUE),mean(w,na.rm=TRUE),mean(v,na.rm=TRUE))
+    all_min<-c(sort(z)[round(length(z)*0.05)],sort(y)[round(length(y)*0.05)],sort(x)[round(length(x)*0.05)],sort(w)[round(length(w)*0.05)],sort(v)[round(length(v)*0.05)]) 
+    zz<-append(all_max,all_min[5:1])
+    cols<-c("darkorange","darkorange1","darkorange2","darkorange3","darkorange4","chocolate4")
+    cols<-cols[6:1]
+    polygon(c(1:5,5:1),zz,col=cols[which(s==j)],border=NA)
+  }
+}
+```
+
+
+
+## Figure 5
+
+95% confidence envelopes for Cortex Ratios obtained from simulations using varying degrees of reduction_intensity when cores are the objects being selected. Line styles indicate "overproduction" settings of 1x (solid), 5x (dashed), and 20x (dotted). 
+
+```{r fig_5}
+r<-unique(cm[,4])
+c<-unique(cm[,5])
+#c<-c(1)
+o<-unique(cm[,6])
+#o<-c(1)
+m<-unique(cm[,3])
+all_max<-0
+all_min<-0
+par(mfrow=c(2,3))
+for (i in r) {
+  plot(c(1:5),c(0,1,2,2,2),col="white", xaxt="n",xlab="",ylab="",ylim=c(0,2.5))
+  axis(1, at=1:5, labels=c("1","1.5","2.0","2.5","3.0"))
+  for (j in o) {
+    z<-c()
+    y<-c()
+    x<-c()
+    w<-c()
+    v<-c()
+    for (k in c[c<=j]) {
+      z<-append(z,get(paste("r",i,"_c",k,"_o",j,"_m",1,"_w100",sep="")))
+      y<-append(y,get(paste("r",i,"_c",k,"_o",j,"_m",1.5,"_w100",sep="")))
+      x<-append(x,get(paste("r",i,"_c",k,"_o",j,"_m",2,"_w100",sep="")))
+      w<-append(w,get(paste("r",i,"_c",k,"_o",j,"_m",2.5,"_w100",sep="")))
+      v<-append(v,get(paste("r",i,"_c",k,"_o",j,"_m",3,"_w100",sep="")))
+    }
+
+    all_max<-c(sort(z)[round(length(z)*0.95)],sort(y)[round(length(y)*0.95)],sort(x)[round(length(x)*0.95)],sort(w)[round(length(w)*0.95)],sort(v)[round(length(v)*0.95)])
+    all_mean<-c(mean(z,na.rm=TRUE),mean(y,na.rm=TRUE),mean(x,na.rm=TRUE),mean(w,na.rm=TRUE),mean(v,na.rm=TRUE))
+    all_min<-c(sort(z)[round(length(z)*0.05)],sort(y)[round(length(y)*0.05)],sort(x)[round(length(x)*0.05)],sort(w)[round(length(w)*0.05)],sort(v)[round(length(v)*0.05)]) 
+    zz<-append(all_max,all_min[5:1])
+    ltys<-c(1,2,3)
+    lines(all_max,lty=ltys[which(o==j)])
+    lines(all_min,lty=ltys[which(o==j)])
+  }
+
+}
+```
+
+
+## Figure 6 
+
+Cortex ratios obtained from simulations using variable settings for carry_in (black = 0; grey = 1). Top row shows simulation outcomes when flakes are the objects being selected, with degree of selection indicated in the upper right corner; bottom row shows outcomes when cores are the objects being selected, with the degree of "overproduction" indicated in the upper right corner. Note that y-axis values are on a logarithmic scale.
+
+```{r fig_6} 
+r<-1
+s<-unique(fm[,5])
+c<-c(0,1)
+m<-unique(fm[,3])
+par(mfrow=c(1,3))
+for (j in s) {
+  z<-get(paste("r",r,"_s",j,"_c",c[1],"_m",1,"_w100",sep=""))
+  y<-get(paste("r",r,"_s",j,"_c",c[1],"_m",1.5,"_w100",sep=""))
+  x<-get(paste("r",r,"_s",j,"_c",c[1],"_m",2,"_w100",sep=""))
+  w<-get(paste("r",r,"_s",j,"_c",c[1],"_m",2.5,"_w100",sep=""))
+  v<-get(paste("r",r,"_s",j,"_c",c[1],"_m",3,"_w100",sep=""))
+  
+  zz<-get(paste("r",r,"_s",j,"_c",c[2],"_m",1,"_w100",sep=""))
+  yy<-get(paste("r",r,"_s",j,"_c",c[2],"_m",1.5,"_w100",sep=""))
+  xx<-get(paste("r",r,"_s",j,"_c",c[2],"_m",2,"_w100",sep=""))
+  ww<-get(paste("r",r,"_s",j,"_c",c[2],"_m",2.5,"_w100",sep=""))
+  vv<-get(paste("r",r,"_s",j,"_c",c[2],"_m",3,"_w100",sep=""))
+
+  mx<-max(z,na.rm=TRUE)
+  if (mx <= max(v,na.rm=TRUE)){
+    mx<-max(v,na.rm=TRUE)
+  }
+  mx<-mx + 1
+
+  plot(c(1:5),c(0,1,2,3,3),col="white", xaxt="n", xlab="", ylab="", ylim=c(0,4))
+  axis(1, at=1:5, labels=c("1","1.5","2.0","2.5","3.0"))
+
+  points(jitter(rep(1,100), amount = 0.05),z,pch=16,cex=0.3)
+  points(jitter(rep(2,100), amount = 0.05),y,pch=16,cex=0.3)
+  points(jitter(rep(3,100), amount = 0.05),x,pch=16,cex=0.3)
+  points(jitter(rep(4,100), amount = 0.05),w,pch=16,cex=0.3)
+  points(jitter(rep(5,100), amount = 0.05),v,pch=16,cex=0.3)
+  points(jitter(rep(1,100), amount = 0.05),zz,pch=16,cex=0.3,col="grey")
+  points(jitter(rep(2,100), amount = 0.05),yy,pch=16,cex=0.3,col="grey")
+  points(jitter(rep(3,100), amount = 0.05),xx,pch=16,cex=0.3,col="grey")
+  points(jitter(rep(4,100), amount = 0.05),ww,pch=16,cex=0.3,col="grey")
+  points(jitter(rep(5,100), amount = 0.05),vv,pch=16,cex=0.3,col="grey")
+  abline(h=c(1,1,1,1,1),lty=2,col="red")
+
+}
+
+
+####CORES
+r<-1
+c<-c(0,20)
+o<-c(1,5,20)
+m<-unique(cm[,3])
+for (j in o) {
+  z<-get(paste("r",r,"_c",0,"_o",j,"_m",1,"_w100",sep=""))
+  y<-get(paste("r",r,"_c",0,"_o",j,"_m",1.5,"_w100",sep=""))
+  x<-get(paste("r",r,"_c",0,"_o",j,"_m",2,"_w100",sep=""))
+  w<-get(paste("r",r,"_c",0,"_o",j,"_m",2.5,"_w100",sep=""))
+  v<-get(paste("r",r,"_c",0,"_o",j,"_m",3,"_w100",sep=""))
+  
+  zz<-get(paste("r",r,"_c",j,"_o",j,"_m",1,"_w100",sep=""))
+  yy<-get(paste("r",r,"_c",j,"_o",j,"_m",1.5,"_w100",sep=""))
+  xx<-get(paste("r",r,"_c",j,"_o",j,"_m",2,"_w100",sep=""))
+  ww<-get(paste("r",r,"_c",j,"_o",j,"_m",2.5,"_w100",sep=""))
+  vv<-get(paste("r",r,"_c",j,"_o",j,"_m",3,"_w100",sep=""))
+
+  plot(c(1:5),c(0,1,2,3,4),col="white", xaxt="n",xlab="",ylab="",ylim=c(0,4))
+  axis(1, at=1:5, labels=c("1","1.5","2.0","2.5","3.0"))
+  points(jitter(rep(1,100), amount = 0.05),z,pch=16,cex=0.3)
+  points(jitter(rep(2,100), amount = 0.05),y,pch=16,cex=0.3)
+  points(jitter(rep(3,100), amount = 0.05),x,pch=16,cex=0.3)
+  points(jitter(rep(4,100), amount = 0.05),w,pch=16,cex=0.3)
+  points(jitter(rep(5,100), amount = 0.05),v,pch=16,cex=0.3)
+  points(jitter(rep(1,100), amount = 0.05),zz,pch=16,cex=0.3,col="grey")
+  points(jitter(rep(2,100), amount = 0.05),yy,pch=16,cex=0.3,col="grey")
+  points(jitter(rep(3,100), amount = 0.05),xx,pch=16,cex=0.3,col="grey")
+  points(jitter(rep(4,100), amount = 0.05),ww,pch=16,cex=0.3,col="grey")
+  points(jitter(rep(5,100), amount = 0.05),vv,pch=16,cex=0.3,col="grey")
+  abline(h=c(1,1,1,1,1),lty=2,col="red")
+}
+
+```
+
+#Figure 7
+
+*Figure 7 derived from simulation interface*
+
+##Figure 8 
+
+Outcomes of FMODEL exploration of the influence of raw material distribution on assemblage Cortex Ratios. Top row are residential-type mobility configurations, bottom row are logistic-type mobility configurations
+
+
+```{r fig_8}
+
+rmtest<-read.csv("fmodel_v3 (raw material) Raw Material 100-table.csv",skip=6,header=TRUE,stringsAsFactors = FALSE)
+
+mu<-c(1,3)
+ab<-c(0.1,0.9)
+xl<-c(16,32)
+
+for (i in xl) {
+  for (jl in mu) {
+    for (jr in mu){
+      for (kl in ab) {
+        for (kr in ab){
+          sub<-subset(rmtest,x.lim==i)
+          sub<-subset(sub,left_mu == jl) #left mu
+          sub<-subset(sub,right_mu == jr) #right mu
+          sub<-subset(sub, left_abundance == kl) #left abundance
+          sub<-subset(sub, right_abundance == kr) #right abundance
+          left<-log(sub$cortex_ratio_left)
+          right<-log(sub$cortex_ratio_right)
+          #tiff(filename=paste("rmtest_logSRB.tif"),width=3.5,height=3.5,units="in",res=600)
+          #boxplot(left,right,names=c("0.9, 1.1","0.1, 3"),ylim=c(0.5,2),xlab="Abundance, mu",ylab="Cortex Ratio")
+          #plot(c(1:2),c(0,2),col="white", xaxt="n",xlab=expression(paste("Abundance, ", mu, " (tortuosity)",sep="")),ylab="Log Cortex Ratio",ylim=c(-2,2))
+          plot(c(1:2),c(-1,1),col="white", xaxt="n",yaxt="n",xlab="",ylab="",ylim=c(-1.5,1.5), main = paste("xlim = ",i))
+axis(1, at=c(1.25,1.75), labels=c(paste(kl,",",jl),paste(kr,",",jr)))
+axis(2, at=c(log(0.25),log(0.5),log(1),log(2),log(4)),labels=c(0.25,0.5,1,2,4))
+points(jitter(rep(1.25,length(left)),amount=0.025),left,pch=16,col="black")
+points(jitter(rep(1.75,length(right)),amount=0.025),right,pch=16,col="grey")
+abline(h=0,lty=2)
+          
+        }
+      }
+    }
+  }
+}
+
+```
+
+
+##Figure 9
+
+Relationship between scald area and Cortex Ratio (n=94)
+
+```{r scald_area_to_CR}
+#tiff(filename=paste("FIG 9.tif"),width=6,height=4,units="in",res=600)
+plot(rc_scalds$SCALDAREA,rc_scalds$CR_V,pch=16,cex=1.2,xlim=c(0,8000),ylim=c(0,1.1),xlab=expression("Scald Area" ~ (cm^{2})),ylab="Cortex Ratio")
+abline(lm(rc_scalds$CR_V~rc_scalds$SCALDAREA))
+#dev.off()
+
+```
+
+
