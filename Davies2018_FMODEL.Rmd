@@ -36,7 +36,7 @@ orig_cob_csa<-4*pi*(((a*b)^p+(a*c)^p+(b*c)^p)/3)^(1/p)
 scalds<-unique(rc_lithics$SCALD)
 ```
 
-#Calculate Cortex Ratios
+##Function to Calculate Cortex Ratios
 
 This method first estimates the mass for silcrete artefacts of different forms using a regression formula published in Douglass 2010. It then calculates the cortex ratio in two different ways: the first estimates original nodule size by dividing the volume of the assemblage by the number of cores, and the number of cores. The second method, advocated by Douglass and colleagues, estimates the number of nodules representedd in the assemblage by dividing the assemblage volume by the estimated original nodlule volume (see above); this value is then multiplied by the original nodule cortical surface area to derive the expected cortical surface area for the assemblage. The latter method is used in this study.
 
@@ -119,7 +119,7 @@ cortexratio<-function(d){
 }
 ```
 
-#Get scald cortex ratios
+##Get scald cortex ratios
 
 ```{r getscald_cr_values}
 #First, remove ground stone objects, etc
@@ -149,7 +149,7 @@ for (g in scalds) {
 rc_scalds<-output
 ```
 
-Reading in the simulated flake data
+##Reading in the simulated flake data
 
 ```{r sim_flake_read}
 fm<-read.csv("fmodel_v3 Flake Target 100-table.csv",header=TRUE,skip=6)
