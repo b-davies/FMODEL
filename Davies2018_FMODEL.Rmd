@@ -12,9 +12,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Introduction
 The following code was used to conduct analyses and produce graphics for the forthcoming paper, MODELING RELATIONSHIPS BETWEEN SPACE, MOVEMENT, AND LITHIC GEOMETRIC ATTRIBUTES, to be published in *American Antiquity*.
 
-## Import and process empirical data
+## Import and process field data
 
-First, the lithic and scald (surveyed surface exposure) data from Rutherfords Creek are loaded in from CSV files
+First, the lithic and scald (surveyed surface exposure) data from Rutherfords Creek are loaded in from CSV files. These can be found at http://wnswap.blogs.auckland.ac.nz/
 
 ```{r empirical_read}
 rc_lithics<-read.csv("RC_LITHICS.csv",stringsAsFactors = FALSE)
