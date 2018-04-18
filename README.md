@@ -10,4 +10,4 @@ Files available
 * [FMODEL_ODD.pdf](https://github.com/b-davies/FMODEL/blob/master/FMODEL_ODD.pdf) *Overview, Design Elements, and Details document for FMODEL*
 * [Davies2018_FMODEL.Rmd](https://github.com/b-davies/FMODEL/blob/master/Davies2018_FMODEL.Rmd) *R notebook with code for processing lithic data and NetLogo outputs*
 
-Lithic and scald (exposed survey areas) data from Rutherfords Creek can be found at the [WNSWAP blog](http://wnswap.blogs.auckland.ac.nz/data/rutherfords-creek/).
+Lithic and scald attribute data from Rutherfords Creek can be found at the [WNSWAP blog](http://wnswap.blogs.auckland.ac.nz/data/rutherfords-creek/).
