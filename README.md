@@ -1,7 +1,7 @@
 # FMODEL
 This is a set of NetLogo simulations of the formation of stone artefact scatters and patterning in lithic cortex, associated with a forthcoming publication:
 
-Davies, B., S. J. Holdaway, and P. C. Fanning. *In press*. Modeling relationships between space, movement, and lithic geometric attributes. Accepted to *American Antiquity*.
+Davies, B., S. J. Holdaway, and P. C. Fanning. 2018. Modeling relationships between space, movement, and lithic geometric attributes.  *American Antiquity* 1-18. <doi:10.1017/aaq.2018.23>
 
 Files available
 * [FMODEL_v4_flakes.nlogo](https://github.com/b-davies/FMODEL/blob/master/FMODEL_v4_flakes.nlogo) *NetLogo simulation file for flake-oriented model*
